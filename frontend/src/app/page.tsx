@@ -93,8 +93,8 @@ const LoginPage: React.FC = () => {
               <li>Log in as one team first</li>
               <li>Input scores and reasons for each factor</li>
               <li>Log out and switch to the other team</li>
-              <li>Input the other team's data</li>
-              <li>Once both teams have saved their data, "Go to Next Stage" becomes available</li>
+              <li>Input the other team&apos;s data</li>
+              <li>Once both teams have saved their data, &quot;Go to Next Stage&quot; becomes available</li>
             </ul>
           </div>
 
@@ -103,7 +103,7 @@ const LoginPage: React.FC = () => {
             <ul className="list-disc ml-4 text-sm space-y-2">
               <li><span className="font-semibold">Business Development Team:</span> Can adjust scores and view Risk Management approval status</li>
               <li><span className="font-semibold">Risk Management Team:</span> Can view scores and toggle Okay/TBD status</li>
-              <li>When both factors are "Okay-ed", Approval section appears</li>
+              <li>When both factors are &quot;Okay-ed&quot;, Approval section appears</li>
               <li>Risk Management Team can finalize the agreement</li>
             </ul>
           </div>
