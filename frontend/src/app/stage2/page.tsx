@@ -2,28 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import { useStore } from "@/state/store";
-import { FaTimes } from "react-icons/fa";
 
 const Stage2: React.FC = () => {
   const {
-    factors,
     setFactorScore,
     setFactorReason,
-    approveScore,
     team1Data,
     team2Data,
     setTeam1Data,
-    setTeam2Data,
     currentUser,
     setCurrentUser,
-    businessApproved,
-    setBusinessApproved,
-    riskApproved,
-    setRiskApproved,
-    isFinalizing,
-    setIsFinalizing,
-    isFinalized,
-    setIsFinalized,
     approvalStatus,
     setApprovalStatus,
     toggleOkayed,
@@ -31,7 +19,6 @@ const Stage2: React.FC = () => {
   } = useStore();
 
   const [showToastLocalStorageUpdated, setShowToastLocalStorageUpdated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,7 +30,6 @@ const Stage2: React.FC = () => {
 
     // Use Zustand's loadInitialFactors instead of manual initialization
     loadInitialFactors();
-    setIsLoading(false);
   }, []);
 
   // Persist changes to team1Data in localStorage

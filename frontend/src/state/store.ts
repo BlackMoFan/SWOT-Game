@@ -1,19 +1,37 @@
 import { create } from 'zustand';
 
+interface TeamData {
+  scores: { [key: string]: number };
+  reasons: { [key: string]: string };
+  okayed: { [key: string]: boolean };
+}
+
+interface Factor {
+  id: string;
+  score: number;
+  reasons: string;
+  approved?: boolean;
+}
+
+interface User {
+  username: string;
+  team: string;
+}
+
 export interface SimulationState {
-  factors: Array<{ id: string; score: number; reasons: string }>;
+  factors: Factor[];
   setFactorScore: (id: string, score: number) => void;
   setFactorReason: (id: string, reason: string) => void;
-  setFactors: (factors: Array<{ id: string; score: number; reasons: string }>) => void;
+  setFactors: (factors: Factor[]) => void;
   isNextStageAvailable: boolean;
   setIsNextStageAvailable: (isAvailable: boolean) => void;
   approveScore: (id: string) => void;
-  team1Data: { scores: { [key: string]: number }; reasons: { [key: string]: string }; okayed: { [key: string]: boolean } };
-  team2Data: { scores: { [key: string]: number }; reasons: { [key: string]: string }; okayed: { [key: string]: boolean } };
-  setTeam1Data: (data: { scores: { [key: string]: number }; reasons: { [key: string]: string }; okayed: { [key: string]: boolean } }) => void;
-  setTeam2Data: (data: { scores: { [key: string]: number }; reasons: { [key: string]: string }; okayed: { [key: string]: boolean } }) => void;
-  currentUser: { username: string; team: string } | null;
-  setCurrentUser: (user: { username: string; team: string } | null) => void;
+  team1Data: TeamData;
+  team2Data: TeamData;
+  setTeam1Data: (data: TeamData) => void;
+  setTeam2Data: (data: TeamData) => void;
+  currentUser: User | null;
+  setCurrentUser: (user: User | null) => void;
   businessApproved: boolean;
   setBusinessApproved: (approved: boolean) => void;
   riskApproved: boolean;

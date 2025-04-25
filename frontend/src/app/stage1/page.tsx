@@ -6,12 +6,19 @@ import FactorCard from '@/components/FactorCard';
 import { FaTimes } from 'react-icons/fa';
 import { useRouter } from 'next/navigation'; // Import router for navigation
 
+interface Factor {
+  id: string;
+  score: number;
+  reasons: string;
+  okayed?: boolean;
+}
+
 const Stage1: React.FC = () => {
   const { factors, setFactorScore, setFactorReason, setFactors, isNextStageAvailable, setIsNextStageAvailable } = useStore();
 
   const [isMounted, setIsMounted] = useState(false); // Track if the component has mounted
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentFactor, setCurrentFactor] = useState<any>(null);
+  const [currentFactor, setCurrentFactor] = useState<Factor | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [lastInteraction, setLastInteraction] = useState(Date.now());
   const [currentUser, setCurrentUser] = useState<{ username: string; team: string } | null>(null);
@@ -118,7 +125,7 @@ const Stage1: React.FC = () => {
           return acc;
         }, {});
 
-        teamData.reasons = factors.reduce((acc: any, factor: any) => {
+        teamData.reasons = factors.reduce<{ [key: string]: string }>((acc, factor) => {
           acc[factor.id] = factor.reasons;
           return acc;
         }, {});
