@@ -41,12 +41,13 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold">SWOT Simulation Game</h1>
-        <p className="text-lg mt-2">Welcome to the Finsimco SWOT Simulation Game</p>
-      </div>
+    {/* Header */}
+    <div className="text-center mb-8">
+      <h1 className="text-4xl font-bold">SWOT Simulation Game</h1>
+      <p className="text-lg mt-2">Welcome to the Finsimco SWOT Simulation Game</p>
+    </div>
 
+    <div className="flex gap-8">
       {/* Login Form */}
       <div className="bg-white text-black p-6 rounded shadow-lg w-96">
         <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
@@ -80,12 +81,54 @@ const LoginPage: React.FC = () => {
         >
           Log In
         </button>
-        {showToast && (
-          <div className="fixed bottom-4 right-4 bg-red-400 text-white px-4 py-2 rounded shadow-lg">
-            Please enter your name and select a team.
-          </div>
-        )}
+        
       </div>
+      {/* Game Mechanics Info Panel */}
+      <div className="bg-white/90 text-black p-6 rounded shadow-lg w-96">
+        <h2 className="text-2xl font-bold mb-4 text-center">Game Mechanics</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-bold text-lg text-blue-600">Stage 1: Analysis and Due Diligence</h3>
+            <ul className="list-disc ml-4 text-sm space-y-2">
+              <li>Log in as one team first</li>
+              <li>Input scores and reasons for each factor</li>
+              <li>Log out and switch to the other team</li>
+              <li>Input the other team's data</li>
+              <li>Once both teams have saved their data, "Go to Next Stage" becomes available</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-lg text-blue-600">Stage 2: Structuring</h3>
+            <ul className="list-disc ml-4 text-sm space-y-2">
+              <li><span className="font-semibold">Business Development Team:</span> Can adjust scores and view Risk Management approval status</li>
+              <li><span className="font-semibold">Risk Management Team:</span> Can view scores and toggle Okay/TBD status</li>
+              <li>When both factors are "Okay-ed", Approval section appears</li>
+              <li>Risk Management Team can finalize the agreement</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-lg text-blue-600">Stage 3: Summary</h3>
+            <ul className="list-disc ml-4 text-sm space-y-2">
+              <li>View final agreed scores and reasons</li>
+              <li>Option to start another round</li>
+            </ul>
+          </div>
+
+          <div className="mt-4 p-2 bg-blue-200 rounded">
+            <p className="text-sm text-blue-800 font-semibold">
+              Note: Both teams must complete their inputs before proceeding to the next stage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {showToast && (
+      <div className="fixed bottom-4 right-4 bg-red-400 text-white px-4 py-2 rounded shadow-lg">
+        Please enter your name and select a team.
+      </div>
+    )}
     </div>
   );
 };

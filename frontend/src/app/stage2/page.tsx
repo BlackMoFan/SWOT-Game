@@ -18,6 +18,7 @@ const Stage2: React.FC = () => {
     loadInitialFactors,
   } = useStore();
 
+  const [showSummaryNotification, setShowSummaryNotification] = useState(false);
   const [showToastLocalStorageUpdated, setShowToastLocalStorageUpdated] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +45,14 @@ const Stage2: React.FC = () => {
       setTimeout(() => setShowToastLocalStorageUpdated(false), 3000);
     }
   }, [team1Data, currentUser]);
+
+  useEffect(() => {
+    // Check if finalizedData exists
+    const finalizedData = localStorage.getItem('finalizedData');
+    if (finalizedData) {
+      setShowSummaryNotification(true);
+    }
+  }, []);
 
   const calculateAverageScore = (scores: { [id: string]: number }) => {
     const values = Object.values(scores);
@@ -123,8 +132,27 @@ const Stage2: React.FC = () => {
     return factorIds.every(factorId => approvalStatus[factorId] === "Okay");
   };
 
+  // Handle navigation to summary
+  const goToSummary = () => {
+    window.location.href = '/stage3';
+  };
+
   return (
     <div className="flex flex-col text-black">
+      {showSummaryNotification && (
+        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 flex justify-between items-center">
+          <div>
+            <p className="font-bold">Summary Available!</p>
+            <p>Final agreement data is available in the summary page.</p>
+          </div>
+          <button
+            onClick={goToSummary}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            View Summary
+          </button>
+        </div>
+      )}
       <div className="flex flex-row gap-6">
         {/* Left Pane */}
         <div className={`flex-${currentUser?.team === "team 1" ? "1" : "2"} bg-gray-100 p-4 rounded-lg shadow-md`}>
@@ -295,8 +323,9 @@ const Stage2: React.FC = () => {
             <div>
               <p className="text-gray-700">Business Development Team:</p>
               <button
-                className="px-4 py-2 rounded bg-green-500 text-white"
+                className="px-4 py-2 rounded bg-green-500 text-white cursor-not-allowed opacity-75"
                 disabled={true}
+                title="Business Development Team's approval is automatic"
               >
                 Approved
               </button>
@@ -304,11 +333,16 @@ const Stage2: React.FC = () => {
             <div>
               <p className="text-gray-700">Risk Management Team:</p>
               <button
-                onClick={() => setShowApprovalModal(true)}
-                className="px-4 py-2 rounded bg-gray-500 text-white hover:bg-gray-600"
+                onClick={() => currentUser?.team === "team 2" && setShowApprovalModal(true)}
+                className={`px-4 py-2 rounded ${
+                  currentUser?.team === "team 2" 
+                    ? "bg-gray-500 text-white hover:bg-gray-600 cursor-pointer" 
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
                 disabled={currentUser?.team !== "team 2"}
+                title={currentUser?.team !== "team 2" ? "Only Risk Management Team can approve" : "Click to approve"}
               >
-                Approve
+                {currentUser?.team === "team 2" ? "Approve" : "Pending Approval"}
               </button>
             </div>
           </div>
