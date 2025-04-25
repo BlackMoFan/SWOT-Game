@@ -24,6 +24,9 @@ const LoginPage: React.FC = () => {
       localStorage.setItem('user', JSON.stringify({ username, team }));
       localStorage.setItem('factors', JSON.stringify(existingData));
 
+      // Set flag for first login to show mission modal
+      localStorage.setItem('showMissionModal', 'true');
+
       // Redirect to Stage 1
       router.push('/stage1');
     } else {

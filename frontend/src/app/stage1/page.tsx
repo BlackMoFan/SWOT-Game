@@ -13,6 +13,18 @@ interface Factor {
   okayed?: boolean;
 }
 
+const FACTOR_DESCRIPTIONS: { [key: string]: string } = {
+  'Brand Recognition and Market Position': 
+    'This factor evaluates the company\'s brand strength, market presence, and competitive positioning. ' +
+    'Consider aspects like brand awareness, customer loyalty, market share, and how well the company stands ' +
+    'out against competitors in the financial technology sector.',
+  
+  'Technology Scalability and Infrastructure':
+    'This factor assesses the company\'s technical capabilities and infrastructure robustness. ' +
+    'Consider the ability to handle increased user load, system reliability, technological innovation, ' +
+    'and the flexibility to adapt to new market demands and regulatory requirements.'
+};
+
 interface ScoreMap {
   [key: string]: number;
 }
@@ -217,7 +229,7 @@ const Stage1: React.FC = () => {
                 <FaTimes className="text-2xl" />
               </button>
               <h2 className="text-xl font-bold mb-2">{currentFactor.id}</h2>
-              <p>{currentFactor.reasons}</p>
+              <p>{FACTOR_DESCRIPTIONS[currentFactor.id]}</p>
             </div>
           </div>
         )}

@@ -6,6 +6,7 @@ import { FaVideo, FaBullseye, FaFolderOpen, FaTimes } from 'react-icons/fa'; // 
 const Sidebar: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
+  const [currentUser, setCurrentUser] = useState<{ username: string; team: string } | null>(null);
 
   const openModal = (content: React.ReactNode) => {
     setModalContent(content);
@@ -17,18 +18,44 @@ const Sidebar: React.FC = () => {
     setModalContent(null);
   };
 
-  // Automatically open the Mission modal on app load
   useEffect(() => {
-    openModal(
-      <div className="text-black">
-        <h2 className="text-xl font-bold mb-2">Mission</h2>
-        <p className="text-black">
-          <span className="font-semibold">For Business Development team:</span> Your mission is to analyze the Strengths and Opportunities.<br />
-          <span className="font-semibold">For Risk Management Team:</span> Your mission is to analyze the Weaknesses and Threats.
-        </p>
-      </div>
-    );
-  }, []); // Empty dependency array ensures this runs only once on component mount
+    // Get user data only once on mount
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
+    }
+  }, []); // Empty dependency array
+
+  // Showing the mission modal
+  useEffect(() => {
+    if (!currentUser) return; // Don't proceed if currentUser is not set
+
+    const shouldShowModal = localStorage.getItem('showMissionModal') === 'true';
+    if (shouldShowModal) {
+      const missionContent = (
+        <div className="text-black">
+          <h2 className="text-xl font-bold mb-2">Mission</h2>
+          <p className="text-black">
+            {currentUser.team === "team 1" ? (
+              <><span className="font-semibold">For Business Development team:</span> Your mission is to analyze the Strengths and Opportunities.</>
+            ) : (
+              <><span className="font-semibold">For Risk Management Team:</span> Your mission is to analyze the Weaknesses and Threats.</>
+            )}
+          </p>
+          <button
+            onClick={() => {
+              closeModal();
+              localStorage.removeItem('showMissionModal');
+            }}
+            className="mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Got it!
+          </button>
+        </div>
+      );
+      openModal(missionContent);
+    }
+  }, [currentUser]);
 
   return (
     <div className="w-fit bg-blue-900 p-4 h-screen flex flex-col justify-between">
