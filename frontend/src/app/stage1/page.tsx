@@ -13,6 +13,10 @@ interface Factor {
   okayed?: boolean;
 }
 
+interface ScoreMap {
+  [key: string]: number;
+}
+
 const Stage1: React.FC = () => {
   const { factors, setFactorScore, setFactorReason, setFactors, isNextStageAvailable, setIsNextStageAvailable } = useStore();
 
@@ -120,7 +124,7 @@ const Stage1: React.FC = () => {
         const teamData = existingData[currentUser.team] || { scores: {}, reasons: {} };
 
         // Update team-specific data
-        teamData.scores = factors.reduce((acc: any, factor: any) => {
+        teamData.scores = factors.reduce<ScoreMap>((acc, factor: Factor) => {
           acc[factor.id] = factor.score;
           return acc;
         }, {});
@@ -167,7 +171,7 @@ const Stage1: React.FC = () => {
     }
   };
 
-  const openModal = (factor: any) => {
+  const openModal = (factor: Factor) => {
     setCurrentFactor(factor);
     setIsModalOpen(true);
   };
