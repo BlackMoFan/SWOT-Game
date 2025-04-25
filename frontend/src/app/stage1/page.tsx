@@ -1,21 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import useStore from '@/state/store';
+import { useStore } from '@/state/store';
 import FactorCard from '@/components/FactorCard';
 import { FaTimes } from 'react-icons/fa';
 import { useRouter } from 'next/navigation'; // Import router for navigation
 
 const Stage1: React.FC = () => {
-  const { setFactorScore, setFactorReason } = useStore();
+  const { factors, setFactorScore, setFactorReason, setFactors, isNextStageAvailable, setIsNextStageAvailable } = useStore();
+
   const [isMounted, setIsMounted] = useState(false); // Track if the component has mounted
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentFactor, setCurrentFactor] = useState<any>(null);
   const [showToast, setShowToast] = useState(false);
   const [lastInteraction, setLastInteraction] = useState(Date.now());
   const [currentUser, setCurrentUser] = useState<{ username: string; team: string } | null>(null);
-  const [factors, setFactors] = useState<any[]>([]); // Store factors as an array
-  const [isNextStageAvailable, setIsNextStageAvailable] = useState(false); // Track if the next stage button should be enabled
+
   const router = useRouter(); // Initialize router for navigation
 
   // Default factors to display if no data exists in localStorage
@@ -24,14 +24,47 @@ const Stage1: React.FC = () => {
     { id: 'Technology Scalability and Infrastructure', score: 0, reasons: '' },
   ];
 
-  // Mark the component as mounted and load user data
+  // First useEffect to set the current user
   useEffect(() => {
-    const user = localStorage.getItem('user');
+    const user = localStorage.getItem("user");
     if (user) {
-      setCurrentUser(JSON.parse(user)); // Parse and set the current user
+      setCurrentUser(JSON.parse(user));
     }
     setIsMounted(true);
-  }, []);
+  }, []); // Empty dependency array as this should only run once
+
+  // Second useEffect to handle factors initialization
+  useEffect(() => {
+    if (!isMounted) return; // Don't run if not mounted yet
+
+    const savedFactors = localStorage.getItem("factors");
+    if (savedFactors) {
+      const parsedFactors = JSON.parse(savedFactors);
+      const user = localStorage.getItem("user");
+      const currentTeam = user ? JSON.parse(user).team : null;
+      
+      if (currentTeam) {
+        const teamData = parsedFactors[currentTeam] || { scores: {}, reasons: {}, okayed: {} };
+
+        // Ensure all properties are initialized
+        teamData.scores = teamData.scores || {};
+        teamData.reasons = teamData.reasons || {};
+        teamData.okayed = teamData.okayed || {};
+
+        const factorsArray = defaultFactors.map(defaultFactor => ({
+          id: defaultFactor.id,
+          score: teamData.scores[defaultFactor.id] || 0,
+          reasons: teamData.reasons[defaultFactor.id] || "",
+          okayed: teamData.okayed[defaultFactor.id] || false,
+        }));
+
+        setFactors(factorsArray);
+      }
+    } else {
+      // Initialize with default factors if no saved data
+      setFactors(defaultFactors.map(factor => ({ ...factor, okayed: false })));
+    }
+  }, [isMounted]); // Only depend on isMounted
 
   // Load factors for the current team from localStorage or use default factors
   useEffect(() => {
@@ -60,10 +93,9 @@ const Stage1: React.FC = () => {
     const savedFactors = localStorage.getItem('factors');
     if (savedFactors) {
       const parsedFactors = JSON.parse(savedFactors);
-      const team1 = parsedFactors["team 1"] || { scores: {}, reasons: {} };
-      const team2 = parsedFactors["team 2"] || { scores: {}, reasons: {} };
+      const team1 = parsedFactors['team 1'] || { scores: {}, reasons: {} };
+      const team2 = parsedFactors['team 2'] || { scores: {}, reasons: {} };
 
-      // Check if both teams have at least one score and reason populated
       const isTeam1Populated = Object.keys(team1.scores).length > 0 || Object.keys(team1.reasons).length > 0;
       const isTeam2Populated = Object.keys(team2.scores).length > 0 || Object.keys(team2.reasons).length > 0;
 
@@ -102,8 +134,8 @@ const Stage1: React.FC = () => {
         const savedFactors = localStorage.getItem('factors');
         if (savedFactors) {
           const parsedFactors = JSON.parse(savedFactors);
-          const team1 = parsedFactors["team 1"] || { scores: {}, reasons: {} };
-          const team2 = parsedFactors["team 2"] || { scores: {}, reasons: {} };
+          const team1 = parsedFactors['team 1'] || { scores: {}, reasons: {} };
+          const team2 = parsedFactors['team 2'] || { scores: {}, reasons: {} };
 
           const isTeam1Populated = Object.keys(team1.scores).length > 0 || Object.keys(team1.reasons).length > 0;
           const isTeam2Populated = Object.keys(team2.scores).length > 0 || Object.keys(team2.reasons).length > 0;
@@ -117,21 +149,13 @@ const Stage1: React.FC = () => {
   }, [factors, lastInteraction, isMounted, currentUser]);
 
   const handleSliderChange = (id: string, score: number) => {
-    setFactors((prevFactors) =>
-      prevFactors.map((factor) =>
-        factor.id === id ? { ...factor, score } : factor
-      )
-    );
+    setFactorScore(id, score); // Update global state using Zustand
     setLastInteraction(Date.now());
   };
 
   const handleReasonChange = (id: string, reason: string) => {
     if (reason.length <= 300) {
-      setFactors((prevFactors) =>
-        prevFactors.map((factor) =>
-          factor.id === id ? { ...factor, reasons: reason } : factor
-        )
-      );
+      setFactorReason(id, reason); // Update global state using Zustand
       setLastInteraction(Date.now());
     }
   };
@@ -186,11 +210,6 @@ const Stage1: React.FC = () => {
             </div>
           </div>
         )}
-        {showToast && (
-          <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg">
-            Changes saved to localStorage!
-          </div>
-        )}
       </div>
       <div className="p-6">
         <button
@@ -203,6 +222,11 @@ const Stage1: React.FC = () => {
           Go to the Next Stage
         </button>
       </div>
+    {showToast && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg">
+        Changes saved to localStorage!
+        </div>
+    )}
     </div>
   );
 };

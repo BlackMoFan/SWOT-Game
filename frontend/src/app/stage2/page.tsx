@@ -1,49 +1,63 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import useStore from "@/state/store";
+import React, { useEffect, useState } from "react";
+import { useStore } from "@/state/store";
 import { FaTimes } from "react-icons/fa";
 
 const Stage2: React.FC = () => {
-  const { setFactorScore, setFactorReason, approveScore } = useStore();
-  const [approvalStatus, setApprovalStatus] = useState<{ [id: string]: string }>({});
-  const [isMounted, setIsMounted] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentFactor, setCurrentFactor] = useState<any>(null);
-  const [businessApproved, setBusinessApproved] = useState(false);
-  const [riskApproved, setRiskApproved] = useState(false);
-  const [team1Data, setTeam1Data] = useState<any>({ scores: {}, reasons: {} });
-  const [team2Data, setTeam2Data] = useState<any>({ scores: {}, reasons: {} });
-  const [currentUser, setCurrentUser] = useState<{ username: string; team: string } | null>(null);
-  const [isFinalizing, setIsFinalizing] = useState(false); // State for loading effect
-  const [isFinalized, setIsFinalized] = useState(false); // State for finalized effect
+  const {
+    factors,
+    setFactorScore,
+    setFactorReason,
+    approveScore,
+    team1Data,
+    team2Data,
+    setTeam1Data,
+    setTeam2Data,
+    currentUser,
+    setCurrentUser,
+    businessApproved,
+    setBusinessApproved,
+    riskApproved,
+    setRiskApproved,
+    isFinalizing,
+    setIsFinalizing,
+    isFinalized,
+    setIsFinalized,
+    approvalStatus,
+    setApprovalStatus,
+    toggleOkayed,
+    loadInitialFactors,
+  } = useStore();
 
-  // Load user and factors for both teams from localStorage
+  const [showToastLocalStorageUpdated, setShowToastLocalStorageUpdated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (user) {
       setCurrentUser(JSON.parse(user)); // Parse and set the current user
     }
 
-    const savedFactors = localStorage.getItem("factors");
-    if (savedFactors) {
+    // Use Zustand's loadInitialFactors instead of manual initialization
+    loadInitialFactors();
+    setIsLoading(false);
+  }, []);
+
+  // Persist changes to team1Data in localStorage
+  useEffect(() => {
+    if (currentUser?.team === "team 1") {
+      const savedFactors = localStorage.getItem("factors") || "{}";
       const parsedFactors = JSON.parse(savedFactors);
 
-      // Check if Team 1 and Team 2 exist in localStorage
-      const team1 = parsedFactors["team 1"] || { scores: {}, reasons: {} };
-      const team2 = parsedFactors["team 2"] || { scores: {}, reasons: {} };
-
-      setTeam1Data(team1);
-      setTeam2Data(team2);
-
-      // Initialize approval status for both teams
-      const allFactors = { ...team1.scores, ...team2.scores };
-      setApprovalStatus(
-        Object.keys(allFactors).reduce((acc: any, id: string) => ({ ...acc, [id]: "TBD" }), {})
-      );
+      parsedFactors["team 1"] = team1Data; // Update team 1 data in localStorage
+      localStorage.setItem("factors", JSON.stringify(parsedFactors));
+      setShowToastLocalStorageUpdated(true);
+      setTimeout(() => setShowToastLocalStorageUpdated(false), 3000);
     }
-    setIsMounted(true);
-  }, []);
+  }, [team1Data, currentUser]);
 
   const calculateAverageScore = (scores: { [id: string]: number }) => {
     const values = Object.values(scores);
@@ -54,165 +68,306 @@ const Stage2: React.FC = () => {
 
   const handleScoreChange = (team: string, factorId: string, newScore: number) => {
     if (team === "team 1") {
-      setTeam1Data((prev: any) => ({
-        ...prev,
-        scores: { ...prev.scores, [factorId]: newScore },
-      }));
+      setTeam1Data({
+        ...team1Data,
+        scores: { ...team1Data.scores, [factorId]: newScore },
+      });
       setFactorScore(factorId, newScore); // Update the store
     }
   };
 
   const handleReasonChange = (team: string, factorId: string, newReason: string) => {
     if (team === "team 1") {
-      setTeam1Data((prev: any) => ({
-        ...prev,
-        reasons: { ...prev.reasons, [factorId]: newReason },
-      }));
+      setTeam1Data({
+        ...team1Data,
+        reasons: { ...team1Data.reasons, [factorId]: newReason },
+      });
       setFactorReason(factorId, newReason); // Update the store
     }
   };
 
-  const isTeam1 = currentUser?.team === "team 1";
+  // Add this function with the other handlers
+  const handleFinalApproval = async () => {
+    setIsSubmitting(true);
+    
+    // Simulate loading delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Save final state to localStorage for summary page
+    const finalState = {
+      team1Data,
+      team2Data,
+      approvalStatus,
+      finalizedAt: new Date().toISOString()
+    };
+    localStorage.setItem('finalizedData', JSON.stringify(finalState));
+    
+    // Redirect to summary page
+    window.location.href = '/stage3';
+  };
 
-  const handleFinalizeNegotiation = () => {
-    setIsFinalizing(true); // Start loading effect
-    setTimeout(() => {
-      setIsFinalizing(false); // Stop loading effect
-      setIsFinalized(true); // Show finalized effect
-    }, 1500); // 1.5 seconds delay
+  const handleApprovalClick = (factorId: string) => {
+    // Get the new status
+    const newStatus = approvalStatus[factorId] === "Okay" ? "TBD" : "Okay";
+    
+    // Update Zustand state first
+    setApprovalStatus(factorId, newStatus);
+    
+    // Update localStorage
+    const savedFactors = localStorage.getItem("factors") || "{}";
+    const parsedFactors = JSON.parse(savedFactors);
+    
+    parsedFactors["team 1"] = {
+      ...team1Data,
+      okayed: {
+        ...team1Data.okayed,
+        [factorId]: newStatus === "Okay"
+      }
+    };
+    
+    // Update localStorage and show toast
+    localStorage.setItem("factors", JSON.stringify(parsedFactors));
+    setShowToastLocalStorageUpdated(true);
+    setTimeout(() => setShowToastLocalStorageUpdated(false), 3000);
+  };
+
+  const areAllFactorsApproved = () => {
+    // Check if all factors in approvalStatus are "Okay"
+    const factorIds = ['Brand Recognition and Market Position', 'Technology Scalability and Infrastructure'];
+    return factorIds.every(factorId => approvalStatus[factorId] === "Okay");
   };
 
   return (
     <div className="flex flex-col text-black">
       <div className="flex flex-row gap-6">
         {/* Left Pane */}
-        <div className={`flex-${isTeam1 ? "1" : "2"} bg-gray-100 p-4 rounded-lg shadow-md`}>
+        <div className={`flex-${currentUser?.team === "team 1" ? "1" : "2"} bg-gray-100 p-4 rounded-lg shadow-md`}>
           <h2 className="text-xl font-bold mb-4 text-center">
-            {isTeam1 ? "Business Development Team" : "Risk Management Team"}
+            {currentUser?.team === "team 1" ? "Business Development Team" : "Risk Management Team"}
           </h2>
           <p className="text-lg font-bold text-center text-blue-500">
-            Average Score: {isTeam1 ? calculateAverageScore(team1Data?.scores || {}) : calculateAverageScore(team2Data?.scores || {})}
+            Average Score: {currentUser?.team === "team 1" ? calculateAverageScore(team1Data?.scores || {}) : calculateAverageScore(team2Data?.scores || {})}
           </p>
-          {Object.keys((isTeam1 ? team1Data : team2Data)?.scores || {}).map((factorId) => (
-            <div key={factorId} className="mb-6">
-              <h3 className="text-lg font-bold text-blue-500">{factorId}</h3>
-              <p className="text-gray-700 mt-2">
-                Score: {isTeam1 ? (
-                  <>
-                    <input
-                      type="range"
-                      min="0"
-                      max="10"
-                      value={team1Data.scores[factorId]}
-                      onChange={(e) => handleScoreChange("team 1", factorId, Number(e.target.value))}
-                      className="w-full"
+          {Object.keys((currentUser?.team === "team 1" ? team1Data : team2Data)?.scores || {}).map((factorId) => (
+            <div key={factorId} className="mb-6 flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-blue-500">{factorId}</h3>
+                <p className="text-gray-700 mt-2">
+                  Score: {currentUser?.team === "team 1" ? (
+                    <>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        value={team1Data.scores[factorId] || 0}
+                        onChange={(e) => handleScoreChange("team 1", factorId, Number(e.target.value))}
+                        className={`w-full ${currentUser?.team !== "team 1" ? "cursor-not-allowed" : ""}`}
+                        disabled={currentUser?.team !== "team 1"}
+                      />
+                      <span className="ml-2">{team1Data.scores[factorId] || 0}</span>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        value={team2Data.scores[factorId] || 0}
+                        className="w-full cursor-not-allowed"
+                        disabled
+                      />
+                      <span className="ml-2">{team2Data.scores[factorId] || 0}</span>
+                    </>
+                  )}
+                </p>
+                <p className="text-gray-700 mt-2">
+                  Reason: {currentUser?.team === "team 1" ? (
+                    <textarea
+                      value={team1Data.reasons[factorId] || ""}
+                      onChange={(e) => handleReasonChange("team 1", factorId, e.target.value)}
+                      className="border rounded px-2 py-1 w-full"
+                      disabled={currentUser?.team !== "team 1"}
                     />
-                    <span className="ml-2">{team1Data.scores[factorId]}</span>
-                  </>
-                ) : (
-                  team2Data.scores[factorId]
-                )}
-              </p>
-              <p className="text-gray-700 mt-2">
-                Reason: {isTeam1 ? (
-                  <textarea
-                    value={team1Data.reasons[factorId]}
-                    onChange={(e) => handleReasonChange("team 1", factorId, e.target.value)}
-                    className="border rounded px-2 py-1 w-full"
-                  />
-                ) : (
-                  team2Data.reasons[factorId]
-                )}
-              </p>
+                  ) : (
+                    team2Data.reasons[factorId] || ""
+                  )}
+                </p>
+              </div>
+              {currentUser?.team === "team 1" && (
+              <label
+                className={`ml-4 flex items-center cursor-not-allowed`}
+                title="This is managed by the Risk Management Team"
+              >
+                <span className="mr-2 text-gray-700">{team1Data.okayed[factorId] ? "Okay" : "TBD"}</span>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={team1Data.okayed[factorId] || false}
+                  onChange={() => currentUser?.team === "team 2" && toggleOkayed(factorId)}
+                  disabled
+                />
+                <div
+                  className={`w-12 h-6 flex items-center bg-gray-300 rounded-full p-1 ${
+                    team1Data.okayed[factorId] ? "bg-green-500" : "bg-gray-500"
+                  }`}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
+                      team1Data.okayed[factorId] ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  ></div>
+                </div>
+              </label>
+              )}
             </div>
           ))}
         </div>
 
         {/* Right Pane */}
-        <div className={`flex-${isTeam1 ? "2" : "1"} bg-gray-100 p-4 rounded-lg shadow-md`}>
+        <div className={`flex-${currentUser?.team === "team 1" ? "2" : "1"} bg-gray-100 p-4 rounded-lg shadow-md`}>
           <h2 className="text-xl font-bold mb-4 text-center">
-            {isTeam1 ? "Risk Management Team" : "Business Development Team"}
+            {currentUser?.team === "team 1" ? "Risk Management Team" : "Business Development Team"}
           </h2>
           <p className="text-lg font-bold text-center text-blue-500">
-            Average Score: {isTeam1 ? calculateAverageScore(team2Data?.scores || {}) : calculateAverageScore(team1Data?.scores || {})}
+            Average Score: {currentUser?.team === "team 1" ? calculateAverageScore(team2Data?.scores || {}) : calculateAverageScore(team1Data?.scores || {})}
           </p>
-          {Object.keys((isTeam1 ? team2Data : team1Data)?.scores || {}).map((factorId) => (
-            <div key={factorId} className="mb-6">
-              <h3 className="text-lg font-bold text-blue-500">{factorId}</h3>
-              <p className="text-gray-700 mt-2">Score: {(isTeam1 ? team2Data : team1Data)?.scores[factorId]}</p>
-              <p className="text-gray-700 mt-2">Reason: {(isTeam1 ? team2Data : team1Data)?.reasons[factorId]}</p>
+          {Object.keys((currentUser?.team === "team 1" ? team2Data : team1Data)?.scores || {}).map((factorId) => (
+            <div key={factorId} className="mb-6 flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-blue-500">{factorId}</h3>
+                <p className="text-gray-700 mt-2">
+                  Score: {currentUser?.team === "team 1" ? (
+                    <>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        value={team2Data.scores[factorId] || 0}
+                        className="w-full cursor-not-allowed"
+                        disabled
+                      />
+                      <span className="ml-2">{team2Data.scores[factorId] || 0}</span>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        value={team1Data.scores[factorId] || 0}
+                        className="w-full cursor-not-allowed"
+                        disabled
+                      />
+                      <span className="ml-2">{team1Data.scores[factorId] || 0}</span>
+                    </>
+                  )}
+                </p>
+                <p className="text-gray-700 mt-2">
+                  Reason: {currentUser?.team === "team 1" ? (
+                    team2Data.reasons[factorId] || ""
+                  ) : (
+                    team1Data.reasons[factorId] || ""
+                  )}
+                </p>
+              </div>
+              {currentUser?.team === "team 2" && (
+              <label
+                className={`ml-4 flex items-center ${currentUser?.team === "team 2" ? "cursor-pointer" : "cursor-not-allowed"}`}
+                title={currentUser?.team === "team 2" ? "Click to toggle" : "This is managed by the Risk Management Team"}
+              >
+                <span className="mr-2 text-gray-700">{approvalStatus[factorId]}</span>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={approvalStatus[factorId] === "Okay"}
+                  onChange={() => currentUser?.team === "team 2" && handleApprovalClick(factorId)}
+                  disabled={currentUser?.team !== "team 2"}
+                />
+                <div
+                  className={`w-12 h-6 flex items-center bg-gray-300 rounded-full p-1 ${
+                    approvalStatus[factorId] === "Okay" ? "bg-green-500" : "bg-gray-500"
+                  }`}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
+                      approvalStatus[factorId] === "Okay" ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  ></div>
+                </div>
+              </label>
+              )}
             </div>
           ))}
         </div>
       </div>
 
       {/* Approvals Section */}
-      <div className="mt-6 bg-white p-4 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">Approvals</h2>
-        <div className="flex justify-between">
-          <div>
-            <p className="text-gray-700">Business Development Team:</p>
-            <button
-              onClick={() => setBusinessApproved(true)}
-              className={`px-4 py-2 rounded ${businessApproved ? "bg-green-500 text-white" : "bg-gray-500 text-white"}`}
-              disabled={businessApproved}
-            >
-              {businessApproved ? "Approved" : "Approve"}
-            </button>
-          </div>
-          <div>
-            <p className="text-gray-700">Risk Management Team:</p>
-            <button
-              onClick={() => setRiskApproved(true)}
-              className={`px-4 py-2 rounded ${riskApproved ? "bg-green-500 text-white" : "bg-gray-500 text-white"}`}
-              disabled={riskApproved}
-            >
-              {riskApproved ? "Approved" : "Approve"}
-            </button>
+      {areAllFactorsApproved() && (
+        <div className="mt-6 bg-white p-4 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">Approvals</h2>
+          <div className="flex justify-between">
+            <div>
+              <p className="text-gray-700">Business Development Team:</p>
+              <button
+                className="px-4 py-2 rounded bg-green-500 text-white"
+                disabled={true}
+              >
+                Approved
+              </button>
+            </div>
+            <div>
+              <p className="text-gray-700">Risk Management Team:</p>
+              <button
+                onClick={() => setShowApprovalModal(true)}
+                className="px-4 py-2 rounded bg-gray-500 text-white hover:bg-gray-600"
+                disabled={currentUser?.team !== "team 2"}
+              >
+                Approve
+              </button>
+            </div>
           </div>
         </div>
-        {businessApproved && riskApproved && (
-          <div className="mt-6">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className={`${isFinalized ? "bg-gray-500" : "bg-blue-500"} text-white px-4 py-2 rounded`}
-              disabled={isFinalized}
-            >
-              {isFinalized ? 'Finalized' : 'Finalize Negotiation'}
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* Finalization Modal */}
-      {isModalOpen && (
-        <div className="modal fixed inset-0 flex items-center justify-center bg-black/70">
-          <div className="bg-white p-6 rounded shadow-lg w-96 relative">
-            <button
-              className="absolute top-4 right-4 text-red-500 hover:text-red-700"
-              onClick={() => setIsModalOpen(false)}
-            >
-              <FaTimes className="text-2xl" />
-            </button>
-            {!isFinalized ? (
-              <>
-                <h2 className="text-xl font-bold mb-4">Finalize Negotiation</h2>
-                <p className="text-gray-700 mb-4">Are you sure you want to finalize the negotiation?</p>
-                <button
-                  onClick={handleFinalizeNegotiation}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                  disabled={isFinalizing || isFinalized}
-                >
-                  {isFinalizing ? "Finalizing..." : "Finalize"}
-                </button>
-              </>
-            ) : (
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-green-500 mb-4">Negotiation Finalized!</h2>
-                <p className="text-gray-700">The negotiation has been successfully completed.</p>
-              </div>
-            )}
+      { /*Modal for Final Approval */ }
+      {showApprovalModal && (
+        <div className="fixed inset-0 bg-black/70 bg-opacity-5 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Confirm Approval</h3>
+            <p className="text-gray-700 mb-6">Are you sure you want to approve this? This action cannot be undone.</p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="px-4 py-2 rounded bg-gray-300 text-gray-700 hover:bg-gray-400"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFinalApproval}
+                className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Finalizing...
+                  </span>
+                ) : (
+                  'Finalize'
+                )}
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {showToastLocalStorageUpdated && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg">
+          Changes saved to localStorage!
         </div>
       )}
     </div>
